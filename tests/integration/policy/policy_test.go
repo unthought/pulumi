@@ -35,6 +35,9 @@ func TestPolicy(t *testing.T) {
 	e.ImportDirectory("test_policy_pack")
 	e.RunCommand("yarn", "install")
 	os.Setenv("TEST_POLICY_PACK", policyPackName)
+
+	// Publish the Policy Pack twice.
+	e.RunCommand("pulumi", "policy", "publish", orgName)
 	e.RunCommand("pulumi", "policy", "publish", orgName)
 
 	// Check the policy ls commands.
@@ -48,13 +51,19 @@ func TestPolicy(t *testing.T) {
 
 	// Enable, Disable and then Delete the Policy Pack.
 	e.RunCommand("pulumi", "policy", "enable", fmt.Sprintf("%s/%s", orgName, policyPackName), "1")
-	e.RunCommand("pulumi", "policy", "disable", fmt.Sprintf("%s/%s", orgName, policyPackName), "1")
+	e.RunCommand("pulumi", "policy", "disable", fmt.Sprintf("%s/%s", orgName, policyPackName), "--version=1")
+
+	// Enable and Disable without specifying the version number.
+	e.RunCommand("pulumi", "policy", "enable", fmt.Sprintf("%s/%s", orgName, policyPackName), "latest")
+	e.RunCommand("pulumi", "policy", "disable", fmt.Sprintf("%s/%s", orgName, policyPackName))
+
 	e.RunCommand("pulumi", "policy", "rm", fmt.Sprintf("%s/%s", orgName, policyPackName), "1")
+	e.RunCommand("pulumi", "policy", "rm", fmt.Sprintf("%s/%s", orgName, policyPackName), "all")
 }
 
 type policyPacksJSON struct {
-	Name     string `json:"name"`
-	Versions []int  `json:"versions"`
+	Name     string   `json:"name"`
+	Versions []string `json:"versions"`
 }
 
 type policyGroupsJSON struct {

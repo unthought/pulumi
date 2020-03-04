@@ -15,9 +15,6 @@
 package cmd
 
 import (
-	"strconv"
-
-	"github.com/pkg/errors"
 	"github.com/pulumi/pulumi/pkg/backend"
 	"github.com/pulumi/pulumi/pkg/util/cmdutil"
 	"github.com/spf13/cobra"
@@ -25,37 +22,39 @@ import (
 
 type policyDisableArgs struct {
 	policyGroup string
+	version     string
 }
 
 func newPolicyDisableCmd() *cobra.Command {
 	args := policyDisableArgs{}
 
 	var cmd = &cobra.Command{
-		Use:   "disable <org-name>/<policy-pack-name> <version>",
-		Args:  cmdutil.ExactArgs(2),
-		Short: "Disable a Policy Pack for a Pulumi organization",
+		Use:   "disable <org-name>/<policy-pack-name>",
+		Args:  cmdutil.MaximumNArgs(1),
+		Short: "[PREVIEW] Disable a Policy Pack for a Pulumi organization",
 		Long:  "Disable a Policy Pack for a Pulumi organization",
 		Run: cmdutil.RunFunc(func(cmd *cobra.Command, cliArgs []string) error {
 			// Obtain current PolicyPack, tied to the Pulumi service backend.
+			var err error
 			policyPack, err := requirePolicyPack(cliArgs[0])
 			if err != nil {
 				return err
 			}
 
-			version, err := strconv.Atoi(cliArgs[1])
-			if err != nil {
-				return errors.Wrapf(err, "Could not parse version (should be an integer)")
-			}
-
 			// Attempt to disable the Policy Pack.
 			return policyPack.Disable(commandContext(), args.policyGroup, backend.PolicyPackOperation{
-				Version: version, Scopes: cancellationScopes})
+				VersionTag: &args.version, Scopes: cancellationScopes})
 		}),
 	}
 
 	cmd.PersistentFlags().StringVar(
 		&args.policyGroup, "policy-group", "",
 		"The Policy Group for which the Policy Pack will be disabled; if not specified, the default Policy Group is used")
+
+	cmd.PersistentFlags().StringVar(
+		&args.version, "version", "",
+		"The version of the Policy Pack that will be disabled; "+
+			"if not specified, any enabled version of the Policy Pack will be disabled")
 
 	return cmd
 }

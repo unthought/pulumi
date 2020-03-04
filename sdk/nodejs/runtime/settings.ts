@@ -15,15 +15,15 @@
 import * as fs from "fs";
 import * as grpc from "grpc";
 import * as path from "path";
-import { RunError } from "../errors";
-import * as log from "../log";
 import { ComponentResource, URN } from "../resource";
 import { debuggablePromise } from "./debuggable";
 
 const engrpc = require("../proto/engine_grpc_pb.js");
 const engproto = require("../proto/engine_pb.js");
+const provproto = require("../proto/provider_pb.js");
 const resrpc = require("../proto/resource_grpc_pb.js");
 const resproto = require("../proto/resource_pb.js");
+const structproto = require("google-protobuf/google/protobuf/struct_pb.js");
 
 /**
  * excessiveDebugOutput enables, well, pretty excessive debug output pertaining to resources and properties.
@@ -53,9 +53,27 @@ export interface Options {
 /**
  * options are the current deployment options being used for this entire session.
  */
-const options = loadOptions();
+let options = loadOptions();
 
-/** @internal Used only for testing purposes */
+
+export function setMockOptions(mockMonitor: any, project?: string, stack?: string, preview?: boolean) {
+    options = {
+        project: project || options.project || "project",
+        stack: stack || options.stack || "stack",
+        dryRun: preview,
+        queryMode: options.queryMode,
+        parallel: options.parallel,
+        monitorAddr: options.monitorAddr,
+        engineAddr: options.engineAddr,
+        testModeEnabled: true,
+        legacyApply: options.legacyApply,
+        syncDir: options.syncDir,
+    };
+
+    monitor = mockMonitor;
+}
+
+/** @internal Used only for testing purposes. */
 export function _setIsDryRun(val: boolean) {
     (options as any).dryRun = val;
 }
@@ -66,7 +84,7 @@ export function _setIsDryRun(val: boolean) {
  * and therefore certain output properties will never be resolved.
  */
 export function isDryRun(): boolean {
-    return options.dryRun === true || isTestModeEnabled();
+    return options.dryRun === true;
 }
 
 /** @internal Used only for testing purposes */
@@ -90,12 +108,12 @@ function requireTestModeEnabled(): void {
     }
 }
 
-/* @internal Used only for testing purposes */
+/** @internal Used only for testing purposes. */
 export function _setQueryMode(val: boolean) {
     (options as any).queryMode = val;
 }
 
- /**
+/**
  * Returns true if query mode is enabled.
  */
 export function isQueryMode(): boolean {
