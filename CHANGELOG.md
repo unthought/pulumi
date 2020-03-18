@@ -2,14 +2,39 @@ CHANGELOG
 =========
 
 ## HEAD (Unreleased)
-* Fix Kubernetes YAML parsing error in .NET.
+- Update to Helm v3 in pulumi Docker image
+  [#4090](https://github.com/pulumi/pulumi/pull/4090)
+
+- Add ArrayMap builtin types to Go SDK
+  [#4086](https://github.com/pulumi/pulumi/pull/4086)
+
+- Improve documentation of URL formats for `pulumi login`
+  [#4059](https://github.com/pulumi/pulumi/pull/4059)
+
+- Add support for stack transformations in the .NET SDK.
+  [4008](https://github.com/pulumi/pulumi/pull/4008)
+  
+## 1.12.1 (2020-03-11)
+- Fix Kubernetes YAML parsing error in .NET.
   [#4023](https://github.com/pulumi/pulumi/pull/4023)
+
 - Avoid projects beginning with `Pulumi` to stop cyclic imports
   [#4013](https://github.com/pulumi/pulumi/pull/4013)
+
 - Ensure we can locate Go created application binaries on Windows
   [#4030](https://github.com/pulumi/pulumi/pull/4030)
+
 - Ensure Python overlays work as part of our SDK generation
   [#4043](https://github.com/pulumi/pulumi/pull/4043)
+
+- Fix terminal gets into a state where UP/DOWN don't work with prompts.
+  [#4042](https://github.com/pulumi/pulumi/pull/4042)
+
+- Ensure old provider is not used when configuration has changed
+  [#4051](https://github.com/pulumi/pulumi/pull/4051)
+
+- Support for unit testing and mocking in the .NET SDK.
+  [#3696](https://github.com/pulumi/pulumi/pull/3696)
 
 ## 1.12.0 (2020-03-04)
 - Avoid Configuring providers which are not used during preview.
