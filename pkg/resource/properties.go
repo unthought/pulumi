@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/pulumi/pulumi/pkg/tokens"
 	"github.com/pulumi/pulumi/pkg/util/contract"
@@ -573,3 +574,9 @@ const SecretSig = "1b47061264138c4ac30d75fd1eb44270"
 
 // ResourceSig is the unique resource signature.
 const ResourceSig = "5cf8f73096256a8f31e491e813e4eb8e"
+
+// IsInternalPropertyKey returns true if the given property key is an internal key that should not be displayed to
+// users.
+func IsInternalPropertyKey(key PropertyKey) bool {
+	return strings.HasPrefix(string(key), "__")
+}

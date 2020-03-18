@@ -1,7 +1,12 @@
 CHANGELOG
 =========
-
 ## HEAD (Unreleased)
+- Add support for plugin acquisition for Go programs
+  [#4060](https://github.com/pulumi/pulumi/pull/4060)
+
+- Display resource type in PAC violation output
+  [#4061](https://github.com/pulumi/pulumi/issues/4061)
+  
 - Update to Helm v3 in pulumi Docker image
   [#4090](https://github.com/pulumi/pulumi/pull/4090)
 
@@ -12,7 +17,10 @@ CHANGELOG
   [#4059](https://github.com/pulumi/pulumi/pull/4059)
 
 - Add support for stack transformations in the .NET SDK.
-  [4008](https://github.com/pulumi/pulumi/pull/4008)
+  [#4008](https://github.com/pulumi/pulumi/pull/4008)
+
+- Fix `pulumi stack ls` on Windows
+  [#4094](https://github.com/pulumi/pulumi/pull/4094)
   
 ## 1.12.1 (2020-03-11)
 - Fix Kubernetes YAML parsing error in .NET.
@@ -1630,4 +1638,3 @@ Resource naming is now more consistent, but there is a new file format for check
 - Support --since and --resource on `pulumi logs` when targeting the service
 - [Pulumi unable to serialize non-integers #694](https://github.com/pulumi/pulumi/issues/694)
 - [Stop buffering CLI output #660](https://github.com/pulumi/pulumi/issues/660)
-

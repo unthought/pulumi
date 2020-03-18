@@ -37,6 +37,7 @@ type MarshalOptions struct {
 	KeepSecrets        bool   // true if we are keeping secrets (otherwise we replace them with their underlying value).
 	RejectAssets       bool   // true if we should return errors on Asset and Archive values.
 	KeepResources      bool   // true if we are keeping resoures (otherwise we return raw urn).
+	SkipInternalKeys   bool   // true to skip internal property keys (keys that start with "__") in the resulting map.
 }
 
 const (
@@ -73,6 +74,8 @@ func MarshalProperties(props resource.PropertyMap, opts MarshalOptions) (*struct
 			logging.V(9).Infof("Skipping output property for RPC[%s]: %v", opts.Label, key)
 		} else if opts.SkipNulls && v.IsNull() {
 			logging.V(9).Infof("Skipping null property for RPC[%s]: %s (as requested)", opts.Label, key)
+		} else if opts.SkipInternalKeys && resource.IsInternalPropertyKey(key) {
+			logging.V(9).Infof("Skipping internal property for RPC[%s]: %s (as requested)", opts.Label, key)
 		} else {
 			m, err := MarshalPropertyValue(v, opts)
 			if err != nil {
@@ -233,6 +236,8 @@ func UnmarshalProperties(props *structpb.Struct, opts MarshalOptions) (resource.
 			logging.V(9).Infof("Unmarshaling property for RPC[%s]: %s=%v", opts.Label, key, v)
 			if opts.SkipNulls && v.IsNull() {
 				logging.V(9).Infof("Skipping unmarshaling for RPC[%s]: %s is null", opts.Label, key)
+			} else if opts.SkipInternalKeys && resource.IsInternalPropertyKey(pk) {
+				logging.V(9).Infof("Skipping unmarshaling for RPC[%s]: %s is internal", opts.Label, key)
 			} else {
 				result[pk] = *v
 			}
