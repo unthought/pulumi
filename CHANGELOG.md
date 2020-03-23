@@ -1,6 +1,20 @@
 CHANGELOG
 =========
-## HEAD (Unreleased)
+
+## HEAD (unreleased)
+- Move to a multi-module repo to enable modules for the Go SDK
+  [#4109](https://github.com/pulumi/pulumi/pull/4109)
+
+- Report compile time errors for Go programs during plugin acquisition.
+  [#4141](https://github.com/pulumi/pulumi/pull/4141)
+
+- Add missing builtin `MapArray` to Go SDK.
+  [#4144](https://github.com/pulumi/pulumi/pull/4144)
+
+- Discontinue testing on Node 8 (which has been end-of-life since January 2020), and start testing on Node 13.
+  [#4156](https://github.com/pulumi/pulumi/pull/4156)
+
+## 1.13.0 (2020-03-18)
 - Add support for plugin acquisition for Go programs
   [#4060](https://github.com/pulumi/pulumi/pull/4060)
 
@@ -21,7 +35,10 @@ CHANGELOG
 
 - Fix `pulumi stack ls` on Windows
   [#4094](https://github.com/pulumi/pulumi/pull/4094)
-  
+
+- Add support for running Python policy packs.
+  [#4057](https://github.com/pulumi/pulumi/pull/4057)
+
 ## 1.12.1 (2020-03-11)
 - Fix Kubernetes YAML parsing error in .NET.
   [#4023](https://github.com/pulumi/pulumi/pull/4023)

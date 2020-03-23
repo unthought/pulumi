@@ -10,11 +10,13 @@ import (
 	"testing"
 	"time"
 
-	ptesting "github.com/pulumi/pulumi/pkg/testing"
+	ptesting "github.com/pulumi/pulumi/sdk/go/common/testing"
 )
 
 // TestPolicy tests policy related commands work.
 func TestPolicy(t *testing.T) {
+	t.Skip("Temporarily skipping test that is causing unrelated tests to fail - pulumi/pulumi#4149")
+
 	e := ptesting.NewEnvironment(t)
 	defer func() {
 		if !t.Failed() {
