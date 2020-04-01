@@ -363,7 +363,7 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 		fmt.Fprintf(w, "     * @param state Any extra arguments used during the lookup.\n")
 		fmt.Fprintf(w, "     */\n")
 
-		stateParam, stateRef := "", "undefined"
+		stateParam, stateRef := "", "undefined, "
 		if r.StateInputs != nil {
 			stateParam, stateRef = fmt.Sprintf("state?: %s, ", stateType), "<any>state, "
 		}
@@ -440,6 +440,9 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 	if r.IsProvider {
 		trailingBrace, optionsType = " {", "ResourceOptions"
 	}
+	if r.StateInputs == nil {
+		trailingBrace = " {"
+	}
 
 	if r.DeprecationMessage != "" {
 		fmt.Fprintf(w, "    /** @deprecated %s */\n", r.DeprecationMessage)
@@ -448,30 +451,36 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 		optionsType, trailingBrace)
 
 	if !r.IsProvider {
-		if r.DeprecationMessage != "" {
-			fmt.Fprintf(w, "    /** @deprecated %s */\n", r.DeprecationMessage)
+		if r.StateInputs != nil {
+			if r.DeprecationMessage != "" {
+				fmt.Fprintf(w, "    /** @deprecated %s */\n", r.DeprecationMessage)
+			}
+			// Now write out a general purpose constructor implementation that can handle the public signature as well as the
+			// signature to support construction via `.get`.  And then emit the body preamble which will pluck out the
+			// conditional state into sensible variables using dynamic type tests.
+			fmt.Fprintf(w, "    constructor(name: string, argsOrState?: %s | %s, opts?: pulumi.CustomResourceOptions) {\n",
+				argsType, stateType)
 		}
-		// Now write out a general purpose constructor implementation that can handle the public signautre as well as the
-		// signature to support construction via `.get`.  And then emit the body preamble which will pluck out the
-		// conditional state into sensible variables using dynamic type tests.
-		fmt.Fprintf(w, "    constructor(name: string, argsOrState?: %s | %s, opts?: pulumi.CustomResourceOptions) {\n",
-			argsType, stateType)
 		if r.DeprecationMessage != "" {
 			fmt.Fprintf(w, "        pulumi.log.warn(\"%s is deprecated: %s\")\n", name, r.DeprecationMessage)
 		}
 		fmt.Fprintf(w, "        let inputs: pulumi.Inputs = {};\n")
-		// The lookup case:
-		fmt.Fprintf(w, "        if (opts && opts.id) {\n")
-		fmt.Fprintf(w, "            const state = argsOrState as %[1]s | undefined;\n", stateType)
-		for _, prop := range r.Properties {
-			fmt.Fprintf(w, "            inputs[\"%[1]s\"] = state ? state.%[1]s : undefined;\n", prop.Name)
+		if r.StateInputs != nil {
+			// The lookup case:
+			fmt.Fprintf(w, "        if (opts && opts.id) {\n")
+			fmt.Fprintf(w, "            const state = argsOrState as %[1]s | undefined;\n", stateType)
+			for _, prop := range r.Properties {
+				fmt.Fprintf(w, "            inputs[\"%[1]s\"] = state ? state.%[1]s : undefined;\n", prop.Name)
+			}
+			// The creation case (with args):
+			fmt.Fprintf(w, "        } else {\n")
+			fmt.Fprintf(w, "            const args = argsOrState as %s | undefined;\n", argsType)
 		}
-		// The creation case (with args):
-		fmt.Fprintf(w, "        } else {\n")
-		fmt.Fprintf(w, "            const args = argsOrState as %s | undefined;\n", argsType)
 	} else {
 		fmt.Fprintf(w, "        let inputs: pulumi.Inputs = {};\n")
-		fmt.Fprintf(w, "        {\n")
+		if r.StateInputs != nil {
+			fmt.Fprintf(w, "        {\n")
+		}
 	}
 	for _, prop := range r.InputProperties {
 		if prop.IsRequired {
@@ -492,17 +501,27 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 
 		// provider properties must be marshaled as JSON strings.
 		if r.IsProvider && !isStringType(prop.Type) {
-			arg = fmt.Sprintf("pulumi.output(%s).apply(JSON.stringify)\n", arg)
+				arg = fmt.Sprintf("pulumi.output(%s).apply(JSON.stringify)", arg)
 		}
 
-		fmt.Fprintf(w, "            inputs[\"%s\"] = %s;\n", prop.Name, arg)
+		prefix := "            "
+		if r.StateInputs == nil {
+			prefix = "        "
+		}
+		fmt.Fprintf(w, "%sinputs[\"%s\"] = %s;\n", prefix, prop.Name, arg)
 	}
 	for _, prop := range r.Properties {
+		prefix := "            "
+		if r.StateInputs == nil {
+			prefix = "        "
+		}
 		if !ins.has(prop.Name) {
-			fmt.Fprintf(w, "            inputs[\"%s\"] = undefined /*out*/;\n", prop.Name)
+			fmt.Fprintf(w, "%sinputs[\"%s\"] = undefined /*out*/;\n", prefix, prop.Name)
 		}
 	}
-	fmt.Fprintf(w, "        }\n")
+	if r.StateInputs != nil {
+		fmt.Fprintf(w, "        }\n")
+	}
 
 	// If the caller didn't request a specific version, supply one using the version of this library.
 	fmt.Fprintf(w, "        if (!opts) {\n")
