@@ -271,6 +271,19 @@ func tsPrimitiveValue(value interface{}) (string, error) {
 	}
 }
 
+func (mod *modContext) getConstValue(cv interface{}) (string, error) {
+	var val string
+	if cv != nil {
+		v, err := tsPrimitiveValue(cv)
+		if err != nil {
+			return "", err
+		}
+		val = v
+	}
+
+	return val, nil
+}
+
 func (mod *modContext) getDefaultValue(dv *schema.DefaultValue, t schema.Type) (string, error) {
 	var val string
 	if dv.Value != nil {
@@ -491,22 +504,31 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 	}
 	for _, prop := range r.InputProperties {
 		arg := fmt.Sprintf("args ? args.%[1]s : undefined", prop.Name)
-		if prop.DefaultValue != nil {
-			dv, err := mod.getDefaultValue(prop.DefaultValue, prop.Type)
-			if err != nil {
-				return err
-			}
-			arg = fmt.Sprintf("(%s) || %s", arg, dv)
-		}
-
-		// provider properties must be marshaled as JSON strings.
-		if r.IsProvider && !isStringType(prop.Type) {
-				arg = fmt.Sprintf("pulumi.output(%s).apply(JSON.stringify)", arg)
-		}
 
 		prefix := "            "
 		if r.StateInputs == nil {
 			prefix = "        "
+		}
+
+		if prop.ConstValue != nil {
+			cv, err := mod.getConstValue(prop.ConstValue)
+			if err != nil {
+				return err
+			}
+			arg = cv
+		} else {
+			if prop.DefaultValue != nil {
+				dv, err := mod.getDefaultValue(prop.DefaultValue, prop.Type)
+				if err != nil {
+					return err
+				}
+				arg = fmt.Sprintf("(%s) || %s", arg, dv)
+			}
+
+			// provider properties must be marshaled as JSON strings.
+			if r.IsProvider && !isStringType(prop.Type) {
+				arg = fmt.Sprintf("pulumi.output(%s).apply(JSON.stringify)", arg)
+			}
 		}
 		fmt.Fprintf(w, "%sinputs[\"%s\"] = %s;\n", prefix, prop.Name, arg)
 	}
@@ -805,6 +827,7 @@ func (mod *modContext) genConfig(w io.Writer, variables []*schema.Property) erro
 		printComment(w, p.Comment, "", "")
 
 		configFetch := fmt.Sprintf("__config.%s(\"%s\")", getfunc, p.Name)
+		// TODO: handle ConstValues
 		if p.DefaultValue != nil {
 			v, err := mod.getDefaultValue(p.DefaultValue, p.Type)
 			if err != nil {
