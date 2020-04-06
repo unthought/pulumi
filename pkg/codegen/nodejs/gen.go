@@ -26,6 +26,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -1009,7 +1010,7 @@ func (mod *modContext) gen(fs fs) error {
 			return err
 		}
 
-		addFile(camel(resourceName(r))+".ts", buffer.String())
+		addFile(title(resourceName(r))+".ts", buffer.String())
 	}
 
 	// Functions
@@ -1022,7 +1023,7 @@ func (mod *modContext) gen(fs fs) error {
 
 		mod.genFunction(buffer, f)
 
-		addFile(camel(tokenToName(f.Token))+".ts", buffer.String())
+		addFile(title(tokenToName(f.Token))+".ts", buffer.String())
 	}
 
 	// Nested types
@@ -1056,12 +1057,21 @@ func (mod *modContext) genIndex(exports []string) string {
 		}
 	}
 
-	var children []string
+	children := stringSet{}
+	versionSuffix := regexp.MustCompile(`/v\d+((alpha|beta)\d+)?`)
 	for _, mod := range mod.children {
-		children = append(children, mod.mod)
+		child := mod.mod
+		// Trim version suffix from child modules. Nested versions will have their own index.ts file.
+		if versionSuffix.MatchString(child) {
+			if i := strings.LastIndex(child, "/"); i > 0 {
+				child = child[:i]
+			}
+		}
+		children.add(child)
 	}
 	if len(mod.types) > 0 {
-		children = append(children, "input", "output")
+		children.add("input")
+		children.add("output")
 	}
 
 	// Finally, if there are submodules, export them.
@@ -1071,14 +1081,18 @@ func (mod *modContext) genIndex(exports []string) string {
 		}
 		fmt.Fprintf(w, "// Export sub-modules:\n")
 
-		sort.Strings(children)
+		var childrenStrings []string
+		for s, _ := range children {
+			childrenStrings = append(childrenStrings, s)
+		}
+		sort.Strings(childrenStrings)
 
-		for _, mod := range children {
+		for _, mod := range childrenStrings {
 			fmt.Fprintf(w, "import * as %[1]s from \"./%[1]s\";\n", mod)
 		}
 
 		fmt.Fprintf(w, "export {")
-		for i, mod := range children {
+		for i, mod := range childrenStrings {
 			if i > 0 {
 				fmt.Fprint(w, ", ")
 			}
