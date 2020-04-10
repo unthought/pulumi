@@ -93,6 +93,49 @@ type modContext struct {
 	modToPkg map[string]string // Module name -> package name
 }
 
+type Resource struct {
+	Module     string
+	Name       string
+	Properties []Property
+	Token      string
+}
+
+type Property struct {
+	Name       string
+	TypeString string
+}
+
+func LanguageResources(pkg *schema.Package) []Resource {
+	// Decode node-specific info
+	var info nodePackageInfo
+	if node, ok := pkg.Language["nodejs"]; ok {
+		if err := json.Unmarshal(node, &info); err != nil {
+			// TODO: better error handling
+			return nil
+		}
+	}
+	mod := &modContext{pkg: pkg, modToPkg: info.ModuleToPackage}
+
+	var resources []Resource
+
+	for _, resource := range pkg.Resources {
+		r := Resource{
+			Module: strings.TrimPrefix(mod.tokenToType(resource.Token, false), "outputs."),
+			Name:  tokenToName(resource.Token),
+			Token: resource.Token,
+		}
+
+		for _, property := range resource.Properties {
+			r.Properties = append(r.Properties, Property{
+				Name:       property.Name,
+				TypeString: mod.typeString(property.Type, false, false, false, property.ConstValue),
+			})
+		}
+		resources = append(resources, r)
+	}
+	return resources
+}
+
 func (mod *modContext) details(t *schema.ObjectType) *typeDetails {
 	details, ok := mod.typeDetails[t]
 	if !ok {
@@ -142,13 +185,13 @@ func resourceName(r *schema.Resource) string {
 	return tokenToName(r.Token)
 }
 
-func (mod *modContext) typeString(t schema.Type, input, wrapInput, optional bool) string {
+func (mod *modContext) typeString(t schema.Type, input, wrapInput, optional bool, constValue interface{}) string {
 	var typ string
 	switch t := t.(type) {
 	case *schema.ArrayType:
-		typ = mod.typeString(t.ElementType, input, wrapInput, false) + "[]"
+		typ = mod.typeString(t.ElementType, input, wrapInput, false, constValue) + "[]"
 	case *schema.MapType:
-		typ = fmt.Sprintf("{[key: string]: %v}", mod.typeString(t.ElementType, input, wrapInput, false))
+		typ = fmt.Sprintf("{[key: string]: %v}", mod.typeString(t.ElementType, input, wrapInput, false, constValue))
 	case *schema.ObjectType:
 		typ = mod.tokenToType(t.Token, input)
 	case *schema.TokenType:
@@ -156,7 +199,7 @@ func (mod *modContext) typeString(t schema.Type, input, wrapInput, optional bool
 	case *schema.UnionType:
 		var elements []string
 		for _, e := range t.ElementTypes {
-			elements = append(elements, mod.typeString(e, input, wrapInput, false))
+			elements = append(elements, mod.typeString(e, input, wrapInput, false, constValue))
 		}
 		return strings.Join(elements, " | ")
 	default:
@@ -181,6 +224,9 @@ func (mod *modContext) typeString(t schema.Type, input, wrapInput, optional bool
 	}
 	if optional {
 		return typ + " | undefined"
+	}
+	if constValue != nil && typ == "string" {
+		typ = constValue.(string)
 	}
 	return typ
 }
@@ -242,7 +288,7 @@ func (mod *modContext) genPlainType(w io.Writer, name, comment string, propertie
 			sigil = "?"
 		}
 
-		fmt.Fprintf(w, "%s    %s%s%s: %s;\n", indent, prefix, p.Name, sigil, mod.typeString(p.Type, input, wrapInput, false))
+		fmt.Fprintf(w, "%s    %s%s%s: %s;\n", indent, prefix, p.Name, sigil, mod.typeString(p.Type, input, wrapInput, false, nil))
 	}
 	fmt.Fprintf(w, "%s}\n", indent)
 }
@@ -428,7 +474,7 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 			outcomment = "/*out*/ "
 		}
 
-		fmt.Fprintf(w, "    public %sreadonly %s!: pulumi.Output<%s>;\n", outcomment, prop.Name, mod.typeString(prop.Type, false, false, !prop.IsRequired))
+		fmt.Fprintf(w, "    public %sreadonly %s!: pulumi.Output<%s>;\n", outcomment, prop.Name, mod.typeString(prop.Type, false, false, !prop.IsRequired, nil))
 	}
 	fmt.Fprintf(w, "\n")
 
@@ -823,7 +869,7 @@ func (mod *modContext) genConfig(w io.Writer, variables []*schema.Property) erro
 		getfunc := "get"
 		if p.Type != schema.StringType {
 			// Only try to parse a JSON object if the config isn't a straight string.
-			getfunc = fmt.Sprintf("getObject<%s>", mod.typeString(p.Type, false, false, false))
+			getfunc = fmt.Sprintf("getObject<%s>", mod.typeString(p.Type, false, false, false, nil))
 		}
 
 		printComment(w, p.Comment, "", "")
@@ -839,7 +885,7 @@ func (mod *modContext) genConfig(w io.Writer, variables []*schema.Property) erro
 		}
 
 		fmt.Fprintf(w, "export let %s: %s = %s;\n",
-			p.Name, mod.typeString(p.Type, false, false, true), configFetch)
+			p.Name, mod.typeString(p.Type, false, false, true, nil), configFetch)
 	}
 
 	return nil
