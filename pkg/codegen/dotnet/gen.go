@@ -295,6 +295,14 @@ func (mod *modContext) typeString(t schema.Type, qualifier string, input, state,
 			typ = "AssetOrArchive"
 		case schema.AnyType:
 			typ = "object"
+			if mod.isK8sCompatMode() {
+				if wrapInput {
+					typ = "InputJson"
+					wrapInput = false
+				} else {
+					typ = "System.Text.Json.JsonElement"
+				}
+			}
 		}
 	}
 
@@ -413,9 +421,14 @@ func (pt *plainType) genInputType(w io.Writer, level int) error {
 
 	fmt.Fprintf(w, "\n")
 
+	sealed := "sealed "
+	if pt.mod.isK8sCompatMode() && (pt.res == nil || !pt.res.IsProvider) {
+		sealed = ""
+	}
+
 	// Open the class.
 	printComment(w, pt.comment, indent)
-	fmt.Fprintf(w, "%spublic sealed class %s : Pulumi.%s\n", indent, pt.name, pt.baseClass)
+	fmt.Fprintf(w, "%spublic %sclass %s : Pulumi.%s\n", indent, sealed, pt.name, pt.baseClass)
 	fmt.Fprintf(w, "%s{\n", indent)
 
 	// Declare each input property.
@@ -458,7 +471,8 @@ func (pt *plainType) genOutputType(w io.Writer, level int) {
 	// Generate each output field.
 	for _, prop := range pt.properties {
 		fieldName := pt.mod.propertyName(prop)
-		fieldType := pt.mod.typeString(prop.Type, pt.propertyTypeQualifier, false, false, false, false, !prop.IsRequired)
+		required := prop.IsRequired || pt.mod.isK8sCompatMode()
+		fieldType := pt.mod.typeString(prop.Type, pt.propertyTypeQualifier, false, false, false, false, !required)
 		printComment(w, prop.Comment, indent+"    ")
 		fmt.Fprintf(w, "%s    public readonly %s %s;\n", indent, fieldType, fieldName)
 	}
@@ -473,7 +487,8 @@ func (pt *plainType) genOutputType(w io.Writer, level int) {
 	// Generate the constructor parameters.
 	for i, prop := range pt.properties {
 		paramName := csharpIdentifier(prop.Name)
-		paramType := pt.mod.typeString(prop.Type, pt.propertyTypeQualifier, false, false, false, false, !prop.IsRequired)
+		required := prop.IsRequired || pt.mod.isK8sCompatMode()
+		paramType := pt.mod.typeString(prop.Type, pt.propertyTypeQualifier, false, false, false, false, !required)
 
 		terminator := ""
 		if i != len(pt.properties)-1 {
@@ -606,6 +621,9 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 	// Open the class.
 	className := name
 	baseType := "Pulumi.CustomResource"
+	if mod.isK8sCompatMode() {
+		baseType = "KubernetesResource"
+	}
 	if r.IsProvider {
 		baseType = "Pulumi.ProviderResource"
 	}
@@ -653,7 +671,7 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 		allOptionalInputs = allOptionalInputs && !prop.IsRequired
 		hasConstInputs = hasConstInputs || prop.ConstValue != nil
 	}
-	if allOptionalInputs {
+	if allOptionalInputs || mod.isK8sCompatMode() {
 		// If the number of required input properties was zero, we can make the args object optional.
 		argsDefault = " = null"
 		argsType += "?"
@@ -684,6 +702,13 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 	fmt.Fprintf(w, "            : base(\"%s\", name, %s, MakeResourceOptions(options, \"\"))\n", tok, argsOverride)
 	fmt.Fprintf(w, "        {\n")
 	fmt.Fprintf(w, "        }\n")
+
+	if mod.isK8sCompatMode() {
+		fmt.Fprintf(w, "        internal %s(string name, ImmutableDictionary<string, object?> dictionary, CustomResourceOptions? options = null)\n", className)
+		fmt.Fprintf(w, "            : base(\"%s\", name, new DictionaryResourceArgs(dictionary), MakeResourceOptions(options, \"\"))\n", tok)
+		fmt.Fprintf(w, "        {\n")
+		fmt.Fprintf(w, "        }\n")
+	}
 
 	// Write a private constructor for the use of `Get`.
 	if !r.IsProvider {
