@@ -638,7 +638,8 @@ func (mod *modContext) genResource(w io.Writer, r *schema.Resource) error {
 		// Write the property attribute
 		wireName := prop.Name
 		propertyName := mod.propertyName(prop)
-		propertyType := mod.typeString(prop.Type, "Outputs", false, false, false, false, !prop.IsRequired)
+		required := prop.IsRequired || mod.isK8sCompatMode()
+		propertyType := mod.typeString(prop.Type, "Outputs", false, false, false, false, !required)
 
 		// Workaround the fact that provider inputs come back as strings.
 		if r.IsProvider && !schema.IsPrimitiveType(prop.Type) {
