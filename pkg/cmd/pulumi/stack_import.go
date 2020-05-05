@@ -88,7 +88,6 @@ func newStackImportCmd() *cobra.Command {
 
 				return errors.Wrap(err, "could not deserialize deployment")
 			}
-
 			var result error
 			for _, res := range snapshot.Resources {
 				if res.URN.Stack() != stackName {
@@ -130,7 +129,7 @@ func newStackImportCmd() *cobra.Command {
 
 				snapshot.PendingOperations = nil
 			}
-			sdp, err := stack.SerializeDeployment(snapshot, snapshot.SecretsManager)
+			sdp, err := stack.SerializeDeployment(snapshot, snapshot.SecretsManager /* showSecrets */, false)
 			if err != nil {
 				return errors.Wrap(err, "constructing deployment for upload")
 			}

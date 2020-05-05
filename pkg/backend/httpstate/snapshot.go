@@ -43,7 +43,7 @@ func (persister *cloudSnapshotPersister) Save(snapshot *deploy.Snapshot) error {
 	if err != nil {
 		return err
 	}
-	deployment, err := stack.SerializeDeployment(snapshot, persister.sm)
+	deployment, err := stack.SerializeDeployment(snapshot, persister.sm /* showSecrets */, false)
 	if err != nil {
 		return errors.Wrap(err, "serializing deployment")
 	}

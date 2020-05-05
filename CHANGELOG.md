@@ -14,6 +14,9 @@ CHANGELOG
 
 - Don't call IMocks.NewResourceAsync for the root stack resource
   [#4527](https://github.com/pulumi/pulumi/pull/4527)
+  
+- Allow secrets to be decrypted when exporting a stack
+  [#4046](https://github.com/pulumi/pulumi/pull/4046)
 
 ## 2.1.0 (2020-04-28)
 
