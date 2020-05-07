@@ -163,7 +163,7 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 		[]string{"ls", "-af", path.Join(e.CWD, "/bin/Debug")},
 	}
 	for _, diagnosticCommand := range diagnosticCommands {
-		o, e := e.RunCommand(diagnosticCommand)
+		o, e := e.RunCommand(diagnosticCommand[0], diagnosticCommand[1:]...)
 		t.Logf("=== Running Diagnostic Command %v ===", diagnosticCommand)
 		t.Logf("STDOUT:\n%v", o)
 		t.Logf("STDERR:\n%v", e)
