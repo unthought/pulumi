@@ -140,10 +140,7 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 		// since the access token would get written to logs.
 		"--env", fmt.Sprintf("PULUMI_ACCESS_TOKEN=%s", os.Getenv("PULUMI_ACCESS_TOKEN")),
 		// Mount the stack's source code into the container.
-		// The "cached" option means the hosts' view of the file system is authoritative,
-		// and prevents some permissions issues when we delete the test environment after
-		// the container completes on cleanup. (--rm does nothing for named volumes.)
-		"--volume", fmt.Sprintf("%s:/src:cached", e.CWD),
+		"--volume", fmt.Sprintf("%s:/src", e.CWD),
 		// Set working directory when running the container.
 		"--workdir", "/src",
 		// Cleanup the container on shutdown.
@@ -155,4 +152,12 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 
 	assert.Contains(t, stdout, "Hello from "+runtime,
 		"Looking for indication stack update was successful in container output.")
+
+	// The behavior is different between macOS and Linux. We may need to explicitly
+	// remove the volume we mounted for `docker run` so that we don't get permission
+	// errors when trying to cleanup this test. (Since it would contain files "owned"
+	// by whatever user Docker runs as, etc.)
+	volRMOut, volRMErr := e.RunCommand("docker", "volume", "rm", e.CWD)
+	t.Logf("Volume RM output: %v", volRMOut)
+	t.Logf("Volume RM error: %v", volRMErr)
 }

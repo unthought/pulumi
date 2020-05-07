@@ -97,7 +97,7 @@ chris_docker_issue_repro:
 .PHONY: travis_cron travis_push travis_pull_request travis_api
 travis_cron: all test_containers_cron
 # HACK HACK
-travis_push: chris_docker_issue_repro
+travis_push: ensure build install chris_docker_issue_repro
 # HACK HACK
-travis_pull_request: chris_docker_issue_repro
+travis_pull_request: ensure build install chris_docker_issue_repro
 travis_api: all
