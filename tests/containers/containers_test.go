@@ -140,7 +140,10 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 		// since the access token would get written to logs.
 		"--env", fmt.Sprintf("PULUMI_ACCESS_TOKEN=%s", os.Getenv("PULUMI_ACCESS_TOKEN")),
 		// Mount the stack's source code into the container.
-		"--volume", fmt.Sprintf("%s:/src", e.CWD),
+		// The "cached" option means the hosts' view of the file system is authoritative,
+		// and prevents some permissions issues when we delete the test environment after
+		// the container completes on cleanup. (--rm does nothing for named volumes.)
+		"--volume", fmt.Sprintf("%s:/src:cached", e.CWD),
 		// Set working directory when running the container.
 		"--workdir", "/src",
 		// Cleanup the container on shutdown.

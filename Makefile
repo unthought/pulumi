@@ -88,9 +88,16 @@ test_containers_cron:
 	$(call STEP_MESSAGE)
 	./scripts/build-docker.sh ${VERSION} --test
 
+.PHONY: chris_docker_issue_repro
+chris_docker_issue_repro:
+	# Docker: Not even once.
+	./scripts/build-docker.sh v2.2.0-alpha.1588792291+g3b9ec659 --test
+
 # The travis_* targets are entrypoints for CI.
 .PHONY: travis_cron travis_push travis_pull_request travis_api
 travis_cron: all test_containers_cron
-travis_push: only_build publish_tgz only_test publish_packages
-travis_pull_request: all
+# HACK HACK
+travis_push: chris_docker_issue_repro
+# HACK HACK
+travis_pull_request: chris_docker_issue_repro
 travis_api: all
