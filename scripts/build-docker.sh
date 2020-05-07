@@ -32,18 +32,18 @@ test_containers() {
     echo_header "Executing container runtime tests"
 
     # Run the container tests, note that we also build the binaries into /tmp for the next step.
-    pushd ${ROOT}/tests
-    GOOS=linux go test -c -o /tmp/pulumi-test-containers ${ROOT}/tests/containers/...
-    popd
+    #pushd ${ROOT}/tests
+    #GOOS=linux go test -c -o /tmp/pulumi-test-containers ${ROOT}/tests/containers/...
+    #popd
 
     # Run tests _within_ the "pulumi" container, ensuring that the CLI is installed
     # and working correctly.
-    docker run -e RUN_CONTAINER_TESTS=true \
-        -e PULUMI_ACCESS_TOKEN=${PULUMI_ACCESS_TOKEN} \
-        --volume /tmp:/src \
-        --entrypoint /bin/bash \
-        pulumi/pulumi:latest \
-        -c "pip install pipenv && /src/pulumi-test-containers -test.parallel=1 -test.v -test.run TestPulumiDockerImage"
+    # docker run -e RUN_CONTAINER_TESTS=true \
+    #    -e PULUMI_ACCESS_TOKEN=${PULUMI_ACCESS_TOKEN} \
+    #    --volume /tmp:/src \
+    #    --entrypoint /bin/bash \
+    #    pulumi/pulumi:latest \
+    #    -c "pip install pipenv && /src/pulumi-test-containers -test.parallel=1 -test.v -test.run TestPulumiDockerImage"
 
     # The actions container should fetch program dependencies from NPM, PIP, etc. before
     # executing. These tests just shell out to docker run to confirm that.

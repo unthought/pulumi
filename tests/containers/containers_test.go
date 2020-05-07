@@ -15,6 +15,7 @@ package containers
 import (
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -104,14 +105,15 @@ func TestPulumiActionsImage(t *testing.T) {
 	t.Run("dotnet", func(t *testing.T) {
 		testRuntimeWorksInContainer(t, "dotnet", pulumiContainerToTest)
 	})
+	/*
+		t.Run("nodejs", func(t *testing.T) {
+			testRuntimeWorksInContainer(t, "nodejs", pulumiContainerToTest)
+		})
 
-	t.Run("nodejs", func(t *testing.T) {
-		testRuntimeWorksInContainer(t, "nodejs", pulumiContainerToTest)
-	})
-
-	t.Run("python", func(t *testing.T) {
-		testRuntimeWorksInContainer(t, "python", pulumiContainerToTest)
-	})
+		t.Run("python", func(t *testing.T) {
+			testRuntimeWorksInContainer(t, "python", pulumiContainerToTest)
+		})
+	*/
 }
 
 // testRuntimeWorksInContainer runs a test that attempts to run a Pulumi program in the given
@@ -125,6 +127,7 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 	e := ptesting.NewEnvironment(t)
 	defer func() {
 		e.RunCommand("pulumi", "stack", "rm", "--force", "--yes")
+		t.Logf("Attempting to delete environment...")
 		e.DeleteEnvironment()
 	}()
 	e.ImportDirectory(runtime)
@@ -153,11 +156,16 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 	assert.Contains(t, stdout, "Hello from "+runtime,
 		"Looking for indication stack update was successful in container output.")
 
-	// The behavior is different between macOS and Linux. We may need to explicitly
-	// remove the volume we mounted for `docker run` so that we don't get permission
-	// errors when trying to cleanup this test. (Since it would contain files "owned"
-	// by whatever user Docker runs as, etc.)
-	volRMOut, volRMErr := e.RunCommand("docker", "volume", "rm", e.CWD)
-	t.Logf("Volume RM output: %v", volRMOut)
-	t.Logf("Volume RM error: %v", volRMErr)
+	diagnosticCommands := [][]string{
+		[]string{"docker", "image", "ls"},
+		[]string{"docker", "container", "ls"},
+		[]string{"docker", "volume", "ls"},
+		[]string{"ls", "-af", path.Join(e.CWD, "/bin/Debug")},
+	}
+	for _, diagnosticCommand := range diagnosticCommands {
+		o, e := e.RunCommand(diagnosticCommand)
+		t.Logf("=== Running Diagnostic Command %v ===", diagnosticCommand)
+		t.Logf("STDOUT:\n%v", o)
+		t.Logf("STDERR:\n%v", e)
+	}
 }
