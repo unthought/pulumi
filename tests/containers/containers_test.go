@@ -136,6 +136,14 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 	e.RunCommand("pulumi", "stack", "init", stackName)
 	e.RunCommand("pulumi", "config", "set", "runtime", runtime)
 
+	t.Logf("NOTE: Running with --user: %v", os.Getenv("USER"))
+	if os.Getenv("USER") == "" {
+		t.Errorf("Needing to set USER env var to Travis... will it work?")
+		if err := os.Setenv("USER", "travis"); err != nil {
+			panic(err)
+		}
+	}
+
 	// Run `pulumi up` using the Pulumi container.
 	stdout, _ := e.RunCommand("docker", "run",
 		// Set the PULUMI_ACCESS_TOKEN environment variable, to authenticate.
@@ -148,6 +156,7 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 		"--workdir", "/src",
 		// Cleanup the container on shutdown.
 		"--rm",
+		"--user", os.Getenv("USER"),
 		// Container to run.
 		container,
 		// Flags to the container's entry point (`pulumi`).
