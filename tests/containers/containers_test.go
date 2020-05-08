@@ -162,6 +162,8 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 		[]string{"docker", "volume", "ls"},
 		[]string{"ls", "-al", path.Join(e.CWD, "/bin/Debug/netcoreapp3.1/")},
 		[]string{"ls", "-al", path.Join(e.CWD, "/bin/Debug")},
+		[]string{"id"},
+		[]string{"whoami"},
 	}
 	for _, diagnosticCommand := range diagnosticCommands {
 		o, e := e.RunCommand(diagnosticCommand[0], diagnosticCommand[1:]...)
@@ -171,5 +173,5 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 	}
 
 	// Hack
-	e.RunCommand("rm", "-r", e.CWD)
+	e.RunCommand("sudo", "rm", "-r", e.CWD)
 }
