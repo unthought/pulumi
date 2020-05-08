@@ -160,7 +160,8 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 		[]string{"docker", "image", "ls"},
 		[]string{"docker", "container", "ls"},
 		[]string{"docker", "volume", "ls"},
-		[]string{"ls", "-af", path.Join(e.CWD, "/bin/Debug")},
+		[]string{"ls", "-al", path.Join(e.CWD, "/bin/Debug/netcoreapp3.1/")},
+		[]string{"ls", "-al", path.Join(e.CWD, "/bin/Debug")},
 	}
 	for _, diagnosticCommand := range diagnosticCommands {
 		o, e := e.RunCommand(diagnosticCommand[0], diagnosticCommand[1:]...)
@@ -168,4 +169,7 @@ func testRuntimeWorksInContainer(t *testing.T, runtime, container string) {
 		t.Logf("STDOUT:\n%v", o)
 		t.Logf("STDERR:\n%v", e)
 	}
+
+	// Hack
+	e.RunCommand("rm", "-r", e.CWD)
 }
