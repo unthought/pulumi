@@ -965,7 +965,7 @@ func (mod *modContext) getConstructorResourceInfo(resourceTypeName string) map[s
 
 		docLangHelper := getLanguageDocHelper(lang)
 		switch lang {
-		case "nodejs", "go":
+		case "nodejs", "go", "python":
 			// Intentionally left blank.
 		case "csharp":
 			if mod.mod == "" {
@@ -980,9 +980,6 @@ func (mod *modContext) getConstructorResourceInfo(resourceTypeName string) map[s
 				modName = getLanguageModuleName(mod.pkg, goPkgName, "csharp")
 			}
 			resourceTypeName = fmt.Sprintf("Pulumi.%s.%s.%s", title(mod.pkg.Name, lang), modName, resourceTypeName)
-		case "python":
-			// Pulumi's Python language SDK does not have "types" yet, so we will skip it for now.
-			// continue
 		default:
 			panic(errors.Errorf("cannot generate constructor info for unhandled language %q", lang))
 		}
