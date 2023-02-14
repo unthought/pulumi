@@ -18,7 +18,7 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
 	github.com/Sirupsen/logrus v1.0.5 // indirect
-	github.com/aws/aws-sdk-go v1.29.27
+	github.com/aws/aws-sdk-go v1.34.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/djherbis/times v1.2.0
 	github.com/docker/docker v0.0.0-20170504205632-89658bed64c2
